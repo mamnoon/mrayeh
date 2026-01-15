@@ -1,0 +1,71 @@
+# ═══════════════════════════════════════════════════════════════════════════
+# CSV Mapping: Generic Order Import
+# ═══════════════════════════════════════════════════════════════════════════
+# 
+# A flexible mapping for common order export formats.
+# Uses fuzzy column matching to handle variations in header names.
+# ═══════════════════════════════════════════════════════════════════════════
+
+name: generic_orders
+description: "Generic order CSV with flexible column matching"
+source_type: csv
+
+delimiter: ","
+encoding: utf-8
+skip_rows: 0
+header_row: 0
+
+skip_patterns:
+  - "^Total"
+  - "^Grand Total"
+  - "^Subtotal"
+  - "^\\s*$"
+
+# Column mappings with common variations
+columns:
+  # Customer - matches: Customer, Account, Store, Buyer, Ship To
+  - source: "Customer"
+    target: customer
+    type: string
+    required: true
+
+  # Product - matches: Product, Item, SKU, Description
+  - source: "Product"
+    target: product
+    type: string
+    required: true
+
+  # Quantity - matches: Quantity, Qty, Units, Count
+  - source: "Qty"
+    target: quantity
+    type: float
+    default: 0
+
+  # Unit - matches: Unit, UOM, Unit Type, Pack
+  - source: "Unit"
+    target: unit_type
+    type: string
+    transform: uppercase
+    default: "EACH"
+
+  # Price - matches: Price, Unit Price, Rate
+  - source: "Price"
+    target: unit_price
+    type: currency
+
+  # Total - matches: Total, Amount, Line Total, Extended
+  - source: "Total"
+    target: line_total
+    type: currency
+
+  # Date - matches: Date, Order Date, Ship Date
+  - source: "Date"
+    target: order_date
+    type: date
+
+  # Order # - matches: Order #, Order Number, PO, PO #
+  - source: "Order"
+    target: order_number
+    type: string
+
+output_type: dict

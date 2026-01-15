@@ -1,0 +1,129 @@
+# ═══════════════════════════════════════════════════════════════════════════
+# CSV Mapping Configuration - Example Template
+# ═══════════════════════════════════════════════════════════════════════════
+# 
+# This file defines how a specific CSV format should be parsed and mapped
+# to the common data model.
+#
+# Copy this file and customize for each CSV source type.
+# ═══════════════════════════════════════════════════════════════════════════
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Metadata
+# ─────────────────────────────────────────────────────────────────────────────
+name: example_mapping
+description: "Example CSV mapping template - customize for your source"
+source_type: csv
+
+# ─────────────────────────────────────────────────────────────────────────────
+# CSV Parsing Options
+# ─────────────────────────────────────────────────────────────────────────────
+delimiter: ","              # Field delimiter (, ; | \t)
+encoding: utf-8             # File encoding
+skip_rows: 0                # Number of rows to skip at start (before headers)
+header_row: 0               # Row index for headers (0-based, after skip_rows)
+                            # Set to null if no headers (use column indices)
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Row Filtering
+# ─────────────────────────────────────────────────────────────────────────────
+skip_patterns:              # Regex patterns - skip rows matching these
+  - "^TOTAL"                # Skip rows starting with TOTAL
+  - "^\\s*$"                # Skip empty rows
+  - "^#"                    # Skip comment rows
+
+stop_pattern: "^END OF DATA"  # Stop parsing when this pattern matches (null = parse all)
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Required Columns (validation)
+# ─────────────────────────────────────────────────────────────────────────────
+required_columns:
+  - "Customer"              # These columns must exist in the CSV headers
+  - "Product"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Column Mappings
+# ─────────────────────────────────────────────────────────────────────────────
+# 
+# Each mapping defines:
+#   source:      Column name (header) or index (0-based)
+#   target:      Target field name in output record
+#   type:        Data type (string, integer, float, date, datetime, boolean, currency)
+#   format:      Format string (for dates: %Y-%m-%d, %m/%d/%Y, etc.)
+#   default:     Default value if source is empty/missing
+#   required:    Fail row if this field is empty (default: false)
+#   transform:   Apply transformation function
+#   regex:       Extract value using regex (capture group 1)
+#   strip_chars: Characters to strip from value
+#
+# Available transforms:
+#   - uppercase, lowercase, titlecase, strip
+#   - extract_po        : Extract PO# from "Customer - PO # 12345"
+#   - extract_customer  : Extract customer name, strip PO suffix
+#   - clean_currency    : Remove $ and commas, convert to float
+#   - yes_no_bool       : Convert yes/no/y/n to boolean
+#
+# ─────────────────────────────────────────────────────────────────────────────
+
+columns:
+  # Simple string mapping
+  - source: "Customer"
+    target: customer
+    type: string
+    required: true
+
+  # String with transform
+  - source: "Customer"
+    target: customer_canonical
+    type: string
+    transform: extract_customer
+
+  # Extract PO from customer field
+  - source: "Customer"
+    target: po_hint
+    type: string
+    transform: extract_po
+
+  # Product mapping
+  - source: "Product"
+    target: product
+    type: string
+    transform: uppercase
+
+  # Numeric quantity
+  - source: "Qty"
+    target: quantity
+    type: float
+    default: 0
+
+  # Currency amount
+  - source: "Amount"
+    target: amount
+    type: currency
+
+  # Date parsing
+  - source: "Order Date"
+    target: order_date
+    type: date
+    format: "%m/%d/%Y"
+
+  # Column by index (if no headers)
+  - source: "5"             # 6th column (0-indexed)
+    target: notes
+    type: string
+
+  # Regex extraction
+  - source: "Description"
+    target: sku
+    type: string
+    regex: "SKU:\\s*(\\w+)"  # Extract SKU code from "Product Name (SKU: ABC123)"
+
+  # Boolean
+  - source: "Active"
+    target: is_active
+    type: boolean
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Output
+# ─────────────────────────────────────────────────────────────────────────────
+output_type: dict           # dict = generic dictionary output

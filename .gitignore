@@ -19,6 +19,7 @@ ENV/
 # Secrets - NEVER commit
 config/service-account.json
 config/*.json
+config/.credentials/
 .env
 .env.*
 !.env.example

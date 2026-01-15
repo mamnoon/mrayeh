@@ -1,0 +1,81 @@
+# ═══════════════════════════════════════════════════════════════════════════
+# MRAYEH - Docker Compose Configuration
+# ═══════════════════════════════════════════════════════════════════════════
+# 
+# Usage:
+#   docker compose up -d          # Start all services
+#   docker compose logs -f        # View logs
+#   docker compose down           # Stop all services
+#
+# ═══════════════════════════════════════════════════════════════════════════
+
+services:
+  # ─────────────────────────────────────────────────────────────────────────
+  # Main Application
+  # ─────────────────────────────────────────────────────────────────────────
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        APP_ENV: ${APP_ENV:-development}
+    container_name: mrayeh-app
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-8000}:8000"
+    environment:
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - DATABASE_PATH=/data/mrayeh.duckdb
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    volumes:
+      - ./data:/data                    # Persistent data
+      - ./config:/app/config:ro         # Credentials (read-only)
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Scheduler (for periodic data pulls)
+  # ─────────────────────────────────────────────────────────────────────────
+  scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mrayeh-scheduler
+    restart: unless-stopped
+    command: ["python", "-m", "src.scheduler"]
+    environment:
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - DATABASE_PATH=/data/mrayeh.duckdb
+      - PULL_SCHEDULE=${PULL_SCHEDULE:-0 6 * * 1}  # Default: Monday 6am
+    volumes:
+      - ./data:/data
+      - ./config:/app/config:ro
+    depends_on:
+      - app
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Browser Automation (Playwright for portal scraping)
+  # ─────────────────────────────────────────────────────────────────────────
+  browser:
+    image: mcr.microsoft.com/playwright/python:v1.40.0-jammy
+    container_name: mrayeh-browser
+    restart: unless-stopped
+    command: ["python", "-m", "src.browser_worker"]
+    environment:
+      - PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+    volumes:
+      - ./src:/app/src:ro
+      - ./data:/data
+      - ./config:/app/config:ro
+    profiles:
+      - browser  # Only start with: docker compose --profile browser up
+
+volumes:
+  data:
+
+networks:
+  default:
+    name: mrayeh-network

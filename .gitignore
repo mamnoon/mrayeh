@@ -1,0 +1,48 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+.venv/
+ENV/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Secrets - NEVER commit
+config/service-account.json
+config/*.json
+.env
+.env.*
+!.env.example
+
+# Data
+*.db
+*.duckdb
+data/
+exports/
+
+# Logs
+logs/
+*.log
+
+# Test artifacts
+.pytest_cache/
+.coverage
+htmlcov/
+*.json
+!package.json
+
+# Diagnostic scripts (dev only)
+diagnose_*.py
+check_*.py
+debug_*.py
+scan_*.py
+tab_analysis.json

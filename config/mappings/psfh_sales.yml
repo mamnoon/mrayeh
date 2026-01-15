@@ -1,13 +1,17 @@
 # ═══════════════════════════════════════════════════════════════════════════
-# CSV Mapping: PSFH Sales Report Export
+# CSV Mapping: PSFH Sales Report (Local Food Connect)
 # ═══════════════════════════════════════════════════════════════════════════
 # 
-# For CSV exports from Local Food Connect (PSFH distributor portal)
-# Adjust column names based on actual export format.
+# Source: Local Food Connect portal export
+# File pattern: "psfh test report *.csv"
+# 
+# Sample row:
+#   8/14/25,8/18/25,21 Acres Farm Market,165757,Baba Ganoush,12/ 8 oz,
+#   BG072825,MAMN024249,$0.00,$45.00,7,1,$45.00,$0.00,12/ 8 oz,1
 # ═══════════════════════════════════════════════════════════════════════════
 
 name: psfh_sales
-description: "PSFH/Local Food Connect sales report export"
+description: "PSFH/Local Food Connect sales report - actual format"
 source_type: csv
 
 # CSV options
@@ -18,78 +22,107 @@ header_row: 0
 
 # Row filtering
 skip_patterns:
-  - "^Total"
-  - "^\\s*$"
-  - "^Subtotal"
+  - "^\\s*$"              # Empty rows
+  - "^Puget Sound Food Hub"  # Footer label
+  - "^,{3,}"              # Row starting with 3+ commas (totals row)
 
 # Required columns
 required_columns:
-  - "Store"
-  - "Product"
-  - "Quantity"
+  - Customer Name
+  - Product Name
+  - Qty
 
 # Column mappings
 columns:
-  # Store/Customer
-  - source: "Store"
+  # ─────────────────────────────────────────────────────────────────────────
+  # Dates
+  # ─────────────────────────────────────────────────────────────────────────
+  - source: "Period Start Date"
+    target: period_start
+    type: date
+    format: "%m/%d/%y"
+
+  - source: "Aggregation Date"
+    target: aggregation_date
+    type: date
+    format: "%m/%d/%y"
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Customer
+  # ─────────────────────────────────────────────────────────────────────────
+  - source: "Customer Name"
     target: customer
     type: string
     required: true
 
-  - source: "Store"
-    target: customer_raw
+  # ─────────────────────────────────────────────────────────────────────────
+  # Order
+  # ─────────────────────────────────────────────────────────────────────────
+  - source: "Order Number"
+    target: order_number
     type: string
 
+  # ─────────────────────────────────────────────────────────────────────────
   # Product
-  - source: "Product"
+  # ─────────────────────────────────────────────────────────────────────────
+  - source: "Product Name"
+    target: product_raw
+    type: string
+    required: true
+
+  # Normalize product name (strip asterisks, standardize)
+  - source: "Product Name"
     target: product
     type: string
     transform: uppercase
-    required: true
+    strip_chars: "*"
 
-  - source: "SKU"
-    target: sku
+  - source: "Selling Unit"
+    target: selling_unit
     type: string
 
-  # Quantities
-  - source: "Quantity"
+  - source: "VIN"
+    target: vin
+    type: string
+
+  - source: "Lot #"
+    target: lot_number
+    type: string
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Quantity & Pricing
+  # ─────────────────────────────────────────────────────────────────────────
+  - source: "Qty"
     target: quantity
-    type: float
+    type: integer
     required: true
 
-  - source: "Unit"
-    target: unit_type
-    type: string
-    transform: uppercase
-    default: "EACH"
+  - source: "Pick Qty"
+    target: pick_qty
+    type: integer
 
-  # Pricing
+  - source: "Weight"
+    target: weight
+    type: float
+
   - source: "Unit Price"
     target: unit_price
     type: currency
 
-  - source: "Total"
-    target: line_total
+  - source: "Deposit"
+    target: deposit
     type: currency
 
-  # Dates
-  - source: "Order Date"
-    target: order_date
-    type: date
-    format: "%m/%d/%Y"
+  - source: "Total Sales"
+    target: total_sales
+    type: currency
 
-  - source: "Delivery Date"
-    target: delivery_date
-    type: date
-    format: "%m/%d/%Y"
+  - source: "Taxable Sales"
+    target: taxable_sales
+    type: currency
 
-  # Order reference
-  - source: "Order #"
-    target: order_number
-    type: string
-
-  - source: "PO #"
-    target: po_number
+  - source: "Pick Unit"
+    target: pick_unit
     type: string
 
 output_type: dict
